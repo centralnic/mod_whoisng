@@ -63,13 +63,16 @@ apr_status_t whois_input_filter(ap_filter_t *f, apr_bucket_brigade *b,
 		ap_input_mode_t mode, apr_read_type_e block,
 		apr_off_t readbytes)
 {
-	apr_bucket *e;
+	apr_bucket *e=NULL;
 	apr_status_t rv;
-	whois_conn_rec *conf;
-	const char *original;
-	char *quoted;
-	char *crlfpos;
-	int len;
+	whois_conn_rec *conf=NULL;
+	const char *original=NULL;
+	char *quoted=NULL;
+	char *crlfpos=NULL;
+	int len=1;
+
+	int alt=0;
+	char clean_original[500]="a";
 	
 	if (mode != AP_MODE_GETLINE) {
 		return ap_get_brigade(f->next, b, mode, block, readbytes);
@@ -93,15 +96,24 @@ apr_status_t whois_input_filter(ap_filter_t *f, apr_bucket_brigade *b,
 	e = APR_BUCKET_NEXT(e);
 	apr_bucket_read(e, &original, &len, APR_BLOCK_READ);
 	APR_BUCKET_REMOVE(e);
-	crlfpos = strstr(original, "\r\n");
+
+	// remove trailing /r/n and null terminate the string
+
+	if (len > 499) 	{len = 499;}
+	for(alt=0; alt<len-2 ; alt++) {clean_original[alt] = original[alt];  };
+	clean_original[++alt] = 0;
+
+// previous code for changing end of string - causes segfault due original char ptr pointing out of bounds if treated like a string
+/*	crlfpos = strstr(original, "\r\n");
 	if (!crlfpos) {
 		return DECLINED;
 		}
 	else {
 		memset(crlfpos, 0, 1);
 		}
+*/
 	
-	quoted = ap_escape_path_segment(f->c->pool, original);
+	quoted = ap_escape_path_segment(f->c->pool, clean_original);
 	e = apr_bucket_immortal_create(quoted, strlen(quoted), f->c->bucket_alloc);
 	APR_BRIGADE_INSERT_TAIL(b, e);
 	/* reinsert CRLF after query */
