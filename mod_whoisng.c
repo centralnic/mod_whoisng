@@ -1,13 +1,9 @@
-
-
 /* mod_whoisng 								*
  *									*
  * version 0.1								*
  * Alexander Mayrhofer <axelm@nic.at>					*
  * 									*
  * please see LICENSE for licensing issues				*/
-
-
 
 #include "httpd.h"
 #define CORE_PRIVATE
@@ -73,11 +69,11 @@ apr_status_t whois_input_filter(ap_filter_t *f, apr_bucket_brigade *b,
 
 	int alt=0;
 	char clean_original[500]="a";
-	
+
 	if (mode != AP_MODE_GETLINE) {
 		return ap_get_brigade(f->next, b, mode, block, readbytes);
 	}
-	
+
 	conf  = ap_get_module_config(f->c->base_server->module_config,
 		&whoisng_module);
 
@@ -88,7 +84,7 @@ apr_status_t whois_input_filter(ap_filter_t *f, apr_bucket_brigade *b,
 		return ap_pass_brigade(f->c->output_filters, b);
 	}
 
-	/* Insert the query prefix in front of the query */	
+	/* Insert the query prefix in front of the query */
 	e = apr_bucket_immortal_create(conf->whois_prefix, strlen(conf->whois_prefix), f->c->bucket_alloc);
 	APR_BRIGADE_INSERT_HEAD(b, e);
 
@@ -97,22 +93,12 @@ apr_status_t whois_input_filter(ap_filter_t *f, apr_bucket_brigade *b,
 	apr_bucket_read(e, &original, &len, APR_BLOCK_READ);
 	APR_BUCKET_REMOVE(e);
 
-	// remove trailing /r/n and null terminate the string
+	// remove trailing \r\n and null terminate the string
 
 	if (len > 499) 	{len = 499;}
 	for(alt=0; alt<len-2 ; alt++) {clean_original[alt] = original[alt];  };
 	clean_original[++alt] = 0;
 
-// previous code for changing end of string - causes segfault due original char ptr pointing out of bounds if treated like a string
-/*	crlfpos = strstr(original, "\r\n");
-	if (!crlfpos) {
-		return DECLINED;
-		}
-	else {
-		memset(crlfpos, 0, 1);
-		}
-*/
-	
 	quoted = ap_escape_path_segment(f->c->pool, clean_original);
 	e = apr_bucket_immortal_create(quoted, strlen(quoted), f->c->bucket_alloc);
 	APR_BRIGADE_INSERT_TAIL(b, e);
@@ -130,20 +116,18 @@ apr_status_t whois_input_filter(ap_filter_t *f, apr_bucket_brigade *b,
 	return OK;
 }
 
-	
-
 static int process_whois_connection(conn_rec *c)
 {
 	whois_conn_rec *conf;
-	
+
 	conf  = ap_get_module_config(c->base_server->module_config,
 		&whoisng_module);
 
-	if (!conf->whois_on) 
+	if (!conf->whois_on)
 	{
 		return DECLINED;
 	}
-	
+
 	ap_add_input_filter("WHOIS_IN", NULL, NULL, c);
 	return DECLINED;
 }
@@ -162,7 +146,7 @@ static void register_hooks(apr_pool_t *p)
 {
 	ap_register_input_filter("WHOIS_IN", whois_input_filter,
 		NULL, AP_FTYPE_CONNECTION);
-	ap_hook_process_connection(process_whois_connection, NULL, NULL, 
+	ap_hook_process_connection(process_whois_connection, NULL, NULL,
 		APR_HOOK_MIDDLE);
 }
 
@@ -175,4 +159,3 @@ module AP_MODULE_DECLARE_DATA whoisng_module = {
 	whois_cmds,
 	register_hooks
 };
-
