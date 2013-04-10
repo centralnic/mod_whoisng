@@ -10,6 +10,7 @@ Source:		http://prdownloads.sourceforge.net/modwhois/%{name}-%{version}.tar.gz
 Requires:	httpd
 BuildRequires:	httpd-devel
 BuildRoot:	%{_tmppath}/root-%{name}-%{version}
+Obsoletes:	mod_whois
 
 %description
 mod_whoisng enables Apache (version 2) to receive standard WHOIS queries, and
@@ -37,13 +38,14 @@ Listen 43
 	Alias			/whois /usr/local/whois
 	WhoisPrefix		"GET /whois/whois.php?domain="
 </VirtualHost>
+END
 
 %clean
 rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,0755)
-%doc LICENSE README httpd.conf.example
+%doc LICENSE README.md httpd.conf.example
 %{_libdir}/httpd/modules/%{name}.so
 
 %changelog
